@@ -325,6 +325,7 @@ const Router = {
   navigate(page, params) {
     // 关闭侧边栏（移动端）
     document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarBackdrop').classList.remove('active');
 
     // 更新侧边栏高亮
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -358,6 +359,14 @@ const Router = {
       case 'records': Renderer.records(); break;
       case 'progress': Renderer.progress(); break;
     }
+
+    // 渲染完成后滚动到页面顶部（确保手机端从顶部开始显示）
+    // 使用 setTimeout 等待浏览器完成布局和渲染，确保滚动到正确位置
+    setTimeout(function() {
+      const mainEl = document.getElementById('mainContent');
+      if (mainEl) mainEl.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }, 50);
   }
 };
 
