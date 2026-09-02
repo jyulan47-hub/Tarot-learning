@@ -1613,7 +1613,20 @@ const Renderer = {
   },
 
   showReference(caseId) {
-    document.getElementById('referenceAnalysis').style.display = 'block';
+    // 如果未提交，自动创建一个空记录并揭晓，让参考分析内容完整显示
+    if (!AppState.practiceRecords[caseId]) {
+      AppState.practiceRecords[caseId] = {
+        analysis: '',
+        time: new Date().toLocaleString('zh-CN'),
+        revealed: true,
+        viewedReference: true
+      };
+      Storage.save();
+    } else if (!AppState.practiceRecords[caseId].revealed) {
+      AppState.practiceRecords[caseId].revealed = true;
+      Storage.save();
+    }
+    this._renderPracticeCase(caseId);
   },
 
   // 实战自我评估：星星评分
