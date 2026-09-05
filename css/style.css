@@ -1842,3 +1842,158 @@ a:hover {
 .safety-tip .safety-icon {
   margin-right: 4px;
 }
+
+/* ========== 牌阵学习 & 学会解牌 通用样式 ========== */
+
+/* 案例展示 */
+.case-study {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 16px 0;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.case-study h5 {
+  margin: 12px 0 6px;
+  color: var(--accent);
+  font-size: 14px;
+}
+.case-study h5:first-child { margin-top: 0; }
+
+/* 练习区域 */
+.practice-box {
+  background: #f0f5ff;
+  border: 1px solid #d6e4f0;
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin: 16px 0;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.practice-box ol, .practice-box ul {
+  margin: 8px 0 8px 20px;
+}
+.practice-box li {
+  margin-bottom: 4px;
+}
+
+/* 正反示例 */
+.bad-example {
+  background: #fff5f5;
+  border: 1px solid #fdd;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.good-example {
+  background: #f5fff5;
+  border: 1px solid #dfd;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+/* 总结框 */
+.summary-box {
+  background: var(--bg-white);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin: 16px 0;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.summary-box ol {
+  margin: 8px 0 8px 20px;
+}
+
+/* 对比表格 */
+.comparison-table {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.comparison-col {
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.comparison-col h5 {
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* 课程章节标题 */
+.lesson-title {
+  font-size: 22px;
+  color: var(--accent-dark);
+  margin-bottom: 8px;
+}
+.lesson-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+/* 页面内标题 */
+#spreadContent h3, #interpretContent h3 {
+  font-size: 18px;
+  color: var(--accent-dark);
+  margin: 20px 0 10px;
+}
+#spreadContent h4, #interpretContent h4 {
+  font-size: 16px;
+  color: var(--accent);
+  margin: 16px 0 8px;
+}
+#spreadContent h5, #interpretContent h5 {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 12px 0 6px;
+}
+#spreadContent p, #interpretContent p {
+  margin-bottom: 10px;
+  line-height: 1.7;
+}
+#spreadContent ul, #interpretContent ul,
+#spreadContent ol, #interpretContent ol {
+  margin: 8px 0 12px 20px;
+  line-height: 1.7;
+}
+#spreadContent li, #interpretContent li {
+  margin-bottom: 4px;
+}
+
+/* 手机端适配 */
+@media (max-width: 767px) {
+  .comparison-table {
+    flex-direction: column;
+  }
+  .comparison-col {
+    min-width: 100%;
+  }
+  .case-study, .practice-box, .summary-box {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .lesson-title {
+    font-size: 19px;
+  }
+  #spreadContent h3, #interpretContent h3 {
+    font-size: 16px;
+  }
+  #spreadContent h4, #interpretContent h4 {
+    font-size: 15px;
+  }
+}

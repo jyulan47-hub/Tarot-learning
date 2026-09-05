@@ -28,7 +28,13 @@ const AppState = {
   currentChapterId: null,
   // 当前文章内容
   currentArticleContent: null,
-  currentArticleTitle: ''
+  currentArticleTitle: '',
+  // 牌阵学习进度: { 'ch-spread-1': { completed: true, notes: '' }, ... }
+  spreadProgress: {},
+  // 解牌学习进度: { 'ch-int-1': { completed: true, notes: '' }, ... }
+  interpretProgress: {},
+  // 解牌练习记录
+  interpretRecords: {}
 };
 
 // ==================== 数据持久化 ====================
@@ -44,7 +50,10 @@ const Storage = {
         practiceRecords: AppState.practiceRecords,
         studyLogs: AppState.studyLogs,
         practiceCompleted: AppState.practiceCompleted,
-        lastVisitDate: AppState.lastVisitDate
+        lastVisitDate: AppState.lastVisitDate,
+        spreadProgress: AppState.spreadProgress,
+        interpretProgress: AppState.interpretProgress,
+        interpretRecords: AppState.interpretRecords
       };
       localStorage.setItem('tarot_learning_data', JSON.stringify(data));
     } catch (e) {
@@ -75,7 +84,10 @@ const Storage = {
         wrongQuestions: AppState.wrongQuestions,
         practiceRecords: AppState.practiceRecords,
         studyLogs: AppState.studyLogs,
-        practiceCompleted: AppState.practiceCompleted
+        practiceCompleted: AppState.practiceCompleted,
+        spreadProgress: AppState.spreadProgress,
+        interpretProgress: AppState.interpretProgress,
+        interpretRecords: AppState.interpretRecords
       }
     };
     return JSON.stringify(data, null, 2);
@@ -129,7 +141,11 @@ function getPhaseProgress(phaseId) {
   if (!phase) return 0;
   const total = phase.chapters.length;
   if (total === 0) return 0;
-  const done = phase.chapters.filter(ch => AppState.chapterProgress[ch.id]).length;
+  const done = phase.chapters.filter(ch => {
+    if (ch.type === 'spread') return AppState.spreadProgress[ch.id]?.completed;
+    if (ch.type === 'interpret') return AppState.interpretProgress[ch.id]?.completed;
+    return AppState.chapterProgress[ch.id];
+  }).length;
   return Math.round((done / total) * 100);
 }
 
@@ -139,7 +155,13 @@ function getTotalProgress() {
   Courses.phases.forEach(phase => {
     phase.chapters.forEach(ch => {
       total++;
-      if (AppState.chapterProgress[ch.id]) done++;
+      if (ch.type === 'spread') {
+        if (AppState.spreadProgress[ch.id]?.completed) done++;
+      } else if (ch.type === 'interpret') {
+        if (AppState.interpretProgress[ch.id]?.completed) done++;
+      } else if (AppState.chapterProgress[ch.id]) {
+        done++;
+      }
     });
   });
   return total === 0 ? 0 : Math.round((done / total) * 100);
@@ -356,6 +378,8 @@ const Router = {
       case 'mymeaning': Renderer.myMeaning(); break;
       case 'quiz': Renderer.quiz(params); break;
       case 'practice': Renderer.practice(params); break;
+      case 'spread': Renderer.spread(params); break;
+      case 'interpret': Renderer.interpret(params); break;
       case 'records': Renderer.records(); break;
       case 'progress': Renderer.progress(); break;
     }
@@ -501,7 +525,9 @@ const Renderer = {
       `;
 
       phase.chapters.forEach(ch => {
-        const completed = AppState.chapterProgress[ch.id];
+        const completed = ch.type === 'spread' ? AppState.spreadProgress[ch.id]?.completed : 
+                          ch.type === 'interpret' ? AppState.interpretProgress[ch.id]?.completed : 
+                          AppState.chapterProgress[ch.id];
         html += `
           <div class="map-chapter ${completed ? 'completed' : ''}" onclick="Renderer.openChapter('${ch.id}')">
             <div class="chapter-check">${completed ? '✓' : ''}</div>
@@ -509,7 +535,7 @@ const Renderer = {
               <h4>${ch.name}</h4>
               <p>${ch.description}</p>
             </div>
-            <span class="chapter-type">${ch.type === 'article' ? '文章' : ch.type === 'card' ? '牌学习' : '其他'}</span>
+            <span class="chapter-type">${ch.type === 'article' ? '文章' : ch.type === 'card' ? '牌学习' : ch.type === 'spread' ? '牌阵' : ch.type === 'interpret' ? '解牌' : '其他'}</span>
           </div>
         `;
       });
@@ -575,6 +601,10 @@ const Renderer = {
         this._renderArticle(found, phaseId);
       } else if (found.type === 'card') {
         this._renderCardStudy(found.cardId, found, phaseId);
+      } else if (found.type === 'spread') {
+        this._renderSpreadArticle(found, phaseId);
+      } else if (found.type === 'interpret') {
+        this._renderInterpretArticle(found, phaseId);
       }
       return;
     }
@@ -1760,6 +1790,145 @@ const Renderer = {
     `;
   },
 
+  // ---------- 牌阵学习 ----------
+  spread(params) {
+    const container = document.getElementById('spreadContent');
+    const spreadPhase = Courses.phases.find(p => p.id === 'phase-spread');
+    if (!spreadPhase) {
+      container.innerHTML = '<p>牌阵学习数据未找到</p>';
+      return;
+    }
+    let html = `<div class="lesson-title">牌阵学习</div>
+      <div class="lesson-subtitle">从一张牌到经典牌阵，系统化理解牌阵逻辑。每学完一个级别，进入下一级。</div>`;
+
+    spreadPhase.chapters.forEach(ch => {
+      const progress = AppState.spreadProgress[ch.id] || {};
+      const completed = progress.completed ? '✅ 已完成' : '⏳ 未完成';
+      html += `
+        <div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="Router.navigate('course',{chapterId:'${ch.id}'})">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h3 class="card-title" style="font-size:15px;margin-bottom:4px;">${ch.name}</h3>
+              <p class="card-text">${ch.description}</p>
+            </div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:12px;background:${completed === '✅ 已完成' ? 'var(--bg-primary)' : '#fef9e7'};color:${completed === '✅ 已完成' ? 'var(--accent)' : '#8a6a00'};white-space:nowrap;">${completed}</span>
+          </div>
+        </div>`;
+    });
+
+    // 统计进度
+    const total = spreadPhase.chapters.length;
+    const done = spreadPhase.chapters.filter(ch => AppState.spreadProgress[ch.id]?.completed).length;
+    html += `
+      <div style="margin-top:16px;padding:14px 18px;background:var(--bg-primary);border-radius:var(--radius);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:13px;color:var(--text-secondary);">学习进度</span>
+          <span style="font-size:13px;font-weight:600;color:var(--accent);">${done}/${total}</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:${total > 0 ? (done/total*100) : 0}%"></div>
+          </div>
+        </div>
+      </div>`;
+    container.innerHTML = html;
+  },
+
+  // 渲染牌阵章节内容
+  _renderSpreadArticle(chapter, phaseId) {
+    const container = document.getElementById('courseContent');
+    container.innerHTML = `
+      <div class="lesson-title">${chapter.name}</div>
+      <div class="lesson-subtitle">${chapter.description}</div>
+      ${chapter.content}
+      <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="Renderer._markSpreadComplete('${chapter.id}')">
+          ${AppState.spreadProgress[chapter.id]?.completed ? '✅ 已完成' : '标记完成'}
+        </button>
+        <button class="btn btn-secondary" onclick="Router.navigate('spread')">返回牌阵学习</button>
+      </div>`;
+  },
+
+  // 标记牌阵章节完成
+  _markSpreadComplete(chapterId) {
+    AppState.spreadProgress[chapterId] = { completed: true, time: new Date().toLocaleString('zh-CN') };
+    Storage.save();
+    addStudyLog('完成牌阵学习', chapterId);
+    // 重新渲染当前章节
+    const chapter = findChapterById(chapterId);
+    if (chapter) this._renderSpreadArticle(chapter);
+    // 更新列表页
+    this.spread();
+  },
+
+  // ---------- 学会解牌 ----------
+  interpret(params) {
+    const container = document.getElementById('interpretContent');
+    const intPhase = Courses.phases.find(p => p.id === 'phase-interpret');
+    if (!intPhase) {
+      container.innerHTML = '<p>学会解牌数据未找到</p>';
+      return;
+    }
+    let html = `<div class="lesson-title">学会解牌</div>
+      <div class="lesson-subtitle">从关键词到语境化解读，真正学会解释一组牌。共10个级别，循序渐进。</div>`;
+
+    intPhase.chapters.forEach(ch => {
+      const progress = AppState.interpretProgress[ch.id] || {};
+      const completed = progress.completed ? '✅ 已完成' : '⏳ 未完成';
+      html += `
+        <div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="Router.navigate('course',{chapterId:'${ch.id}'})">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div>
+              <h3 class="card-title" style="font-size:15px;margin-bottom:4px;">${ch.name}</h3>
+              <p class="card-text">${ch.description}</p>
+            </div>
+            <span style="font-size:12px;padding:3px 10px;border-radius:12px;background:${completed === '✅ 已完成' ? 'var(--bg-primary)' : '#fef9e7'};color:${completed === '✅ 已完成' ? 'var(--accent)' : '#8a6a00'};white-space:nowrap;">${completed}</span>
+          </div>
+        </div>`;
+    });
+
+    const total = intPhase.chapters.length;
+    const done = intPhase.chapters.filter(ch => AppState.interpretProgress[ch.id]?.completed).length;
+    html += `
+      <div style="margin-top:16px;padding:14px 18px;background:var(--bg-primary);border-radius:var(--radius);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:13px;color:var(--text-secondary);">学习进度</span>
+          <span style="font-size:13px;font-weight:600;color:var(--accent);">${done}/${total}</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:${total > 0 ? (done/total*100) : 0}%"></div>
+          </div>
+        </div>
+      </div>`;
+    container.innerHTML = html;
+  },
+
+  // 渲染解牌章节内容
+  _renderInterpretArticle(chapter, phaseId) {
+    const container = document.getElementById('courseContent');
+    container.innerHTML = `
+      <div class="lesson-title">${chapter.name}</div>
+      <div class="lesson-subtitle">${chapter.description}</div>
+      ${chapter.content}
+      <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="Renderer._markInterpretComplete('${chapter.id}')">
+          ${AppState.interpretProgress[chapter.id]?.completed ? '✅ 已完成' : '标记完成'}
+        </button>
+        <button class="btn btn-secondary" onclick="Router.navigate('interpret')">返回学会解牌</button>
+      </div>`;
+  },
+
+  // 标记解牌章节完成
+  _markInterpretComplete(chapterId) {
+    AppState.interpretProgress[chapterId] = { completed: true, time: new Date().toLocaleString('zh-CN') };
+    Storage.save();
+    addStudyLog('完成解牌学习', chapterId);
+    const chapter = findChapterById(chapterId);
+    if (chapter) this._renderInterpretArticle(chapter);
+    this.interpret();
+  },
+
   // ---------- 学习进度 ----------
   progress() {
     const container = document.getElementById('progressContent');
@@ -1860,6 +2029,15 @@ const Renderer = {
 };
 
 // ==================== 辅助函数 ====================
+function findChapterById(chapterId) {
+  for (const phase of Courses.phases) {
+    for (const ch of phase.chapters) {
+      if (ch.id === chapterId) return ch;
+    }
+  }
+  return null;
+}
+
 function getCurrentPhase() {
   for (const phase of Courses.phases) {
     const allDone = phase.chapters.every(ch => AppState.chapterProgress[ch.id]);
